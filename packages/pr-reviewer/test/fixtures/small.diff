@@ -1,0 +1,56 @@
+diff --git a/src/hooks/useDebounce.ts b/src/hooks/useDebounce.ts
+index 3b18e51..a9c2f04 100644
+--- a/src/hooks/useDebounce.ts
++++ b/src/hooks/useDebounce.ts
+@@ -1,12 +1,14 @@
+ import { useEffect, useState } from "react";
+ 
+ export function useDebounce<T>(value: T, delay = 300): T {
+   const [debounced, setDebounced] = useState(value);
+ 
+   useEffect(() => {
+-    const id = setTimeout(() => setDebounced(value), delay);
+-    return () => clearTimeout(id);
++    const id = setTimeout(() => {
++      setDebounced(value);
++    }, delay);
+   }, [value, delay]);
+ 
+   return debounced;
+ }
++
+diff --git a/src/api/users.ts b/src/api/users.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/src/api/users.ts
+@@ -0,0 +1,6 @@
++export async function getUser(id: string) {
++  const res = await fetch(`/api/users/${id}`);
++  return res.json();
++}
++
++export const USERS_PAGE_SIZE = 50;
+diff --git a/src/old/legacy.ts b/src/old/legacy.ts
+deleted file mode 100644
+index 1111111..0000000
+--- a/src/old/legacy.ts
++++ /dev/null
+@@ -1,2 +0,0 @@
+-export const x = 1;
+-export const y = 2;
+diff --git a/src/utils/format.ts b/src/lib/format.ts
+similarity index 90%
+rename from src/utils/format.ts
+rename to src/lib/format.ts
+index 2222222..3333333 100644
+--- a/src/utils/format.ts
++++ b/src/lib/format.ts
+@@ -10,3 +10,3 @@ export function formatDate(d: Date) {
+ export function formatMoney(cents: number) {
+-  return "$" + cents / 100;
++  return "$" + (cents / 100).toFixed(2);
+ }
+diff --git a/public/logo.png b/public/logo.png
+index 4444444..5555555 100644
+Binary files a/public/logo.png and b/public/logo.png differ
