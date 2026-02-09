@@ -1,0 +1,32 @@
+# Example: run the reviewer on PRs in this repo. To use it in another repo,
+# copy this file and point `uses:` at wherever you host this action.
+name: ai review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, labeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    # Opt-in via label, and never on drafts or forks (no secrets there anyway).
+    # Running on every push got expensive and people ignored it.
+    if: >-
+      !github.event.pull_request.draft &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.labels.*.name, 'ai-review')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./packages/pr-reviewer
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          token-budget: "150000"
