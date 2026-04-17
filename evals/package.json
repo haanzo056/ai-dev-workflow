@@ -1,0 +1,17 @@
+{
+  "name": "@ai-dev-workflow/evals",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "evals": "tsx src/run.ts",
+    "compare": "tsx src/compare.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@ai-dev-workflow/pr-reviewer": "*",
+    "@anthropic-ai/sdk": "^0.128.0",
+    "yaml": "^2.8.0",
+    "zod": "^4.1.0"
+  }
+}
