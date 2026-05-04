@@ -1,0 +1,49 @@
+- id: pagination-off-by-one
+  description: ">= instead of > means the last page always reports a next cursor"
+  pr_title: "cap page size at 100"
+  diff_file: diffs/pagination.diff
+  expect:
+    must_find:
+      - path: src/lib/paginate.ts
+        line_range: [10, 14]
+        severity_in: [bug, risk]
+        keywords: [">=", "off-by-one", "off by one", "last page", "nextCursor", "hasMore"]
+    max_findings: 3
+  rubric: |
+    hasMore changed from > to >=. With callers fetching limit + 1 rows, a page with exactly limit rows (the last
+    page) now returns a nextCursor, so clients request an empty extra page. A good review catches the comparison
+    change. A secondary note that parseLimit has no upper bound is fine but not required.
+
+- id: clean-rename
+  description: straightforward rename with call sites updated
+  pr_title: "rename formatMoney -> formatPrice"
+  diff: |
+    diff --git a/src/lib/format.ts b/src/lib/format.ts
+    index 2222222..3333333 100644
+    --- a/src/lib/format.ts
+    +++ b/src/lib/format.ts
+    @@ -8,5 +8,5 @@ export function formatDate(d: Date) {
+       return d.toLocaleDateString("en-US", { dateStyle: "medium" });
+     }
+     
+    -export function formatMoney(cents: number, currency = "USD") {
+    +export function formatPrice(cents: number, currency = "USD") {
+       return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
+     }
+    diff --git a/src/components/PriceTag.tsx b/src/components/PriceTag.tsx
+    index 4444444..5555555 100644
+    --- a/src/components/PriceTag.tsx
+    +++ b/src/components/PriceTag.tsx
+    @@ -1,5 +1,5 @@
+    -import { formatMoney } from "@/lib/format";
+    +import { formatPrice } from "@/lib/format";
+     
+     export function PriceTag({ cents }: { cents: number }) {
+    -  return <span className="font-medium">{formatMoney(cents)}</span>;
+    +  return <span className="font-medium">{formatPrice(cents)}</span>;
+     }
+  expect:
+    max_findings: 0
+  rubric: |
+    Mechanical rename, nothing wrong. Ideal output is zero comments. A comment asking to check other call sites
+    of formatMoney is acceptable-ish (score 4 at most); anything else is noise.

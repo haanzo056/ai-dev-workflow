@@ -1,0 +1,107 @@
+- id: missing-await-route
+  description: getUser is async, the null check never fires
+  pr_title: "users api: return 404 for unknown ids"
+  diff: |
+    diff --git a/app/api/users/[id]/route.ts b/app/api/users/[id]/route.ts
+    index 0a1b2c3..4d5e6f7 100644
+    --- a/app/api/users/[id]/route.ts
+    +++ b/app/api/users/[id]/route.ts
+    @@ -1,9 +1,15 @@
+     import { requireUser } from "@/lib/auth";
+     import { getUser } from "@/lib/users";
+     
+     export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+       await requireUser(req);
+       const { id } = await params;
+    -  const user = await getUser(id);
+    -  return Response.json(user);
+    +  const user = getUser(id);
+    +  if (!user) {
+    +    return Response.json(
+    +      { error: { code: "not_found", message: "User not found" } },
+    +      { status: 404 },
+    +    );
+    +  }
+    +  return Response.json(user);
+     }
+  expect:
+    must_find:
+      - path: app/api/users/[id]/route.ts
+        line_range: [7, 9]
+        severity_in: [bug]
+        keywords: [await, promise]
+    max_findings: 2
+  rubric: |
+    The await was dropped, so user is a Promise: the 404 branch never runs and Response.json gets a Promise
+    (serializes to {}). A good review points at the missing await as a bug. Nothing else in the diff needs comments.
+
+- id: raw-sql-injection
+  description: search endpoint builds SQL with string interpolation
+  pr_title: "search: support partial matches"
+  diff: |
+    diff --git a/app/api/search/route.ts b/app/api/search/route.ts
+    index 1f2e3d4..5c6b7a8 100644
+    --- a/app/api/search/route.ts
+    +++ b/app/api/search/route.ts
+    @@ -1,10 +1,11 @@
+     import { db } from "@/lib/db";
+    +import { rateLimit } from "@/lib/rate-limit";
+     
+     export async function GET(req: Request) {
+    +  await rateLimit(req);
+       const q = new URL(req.url).searchParams.get("q") ?? "";
+    -  const products = await db.product.findMany({
+    -    where: { name: { equals: q } },
+    -    take: 20,
+    -  });
+    +  const products = await db.$queryRawUnsafe(
+    +    `SELECT id, name, price FROM "Product" WHERE name ILIKE '%${q}%' LIMIT 20`,
+    +  );
+       return Response.json({ products });
+     }
+  expect:
+    must_find:
+      - path: app/api/search/route.ts
+        line_range: [7, 10]
+        severity_in: [bug, risk]
+        keywords: [injection, sql, unsafe, parameter]
+    must_not_flag:
+      - path: app/api/search/route.ts
+        line_range: [2, 5]
+  rubric: |
+    User input is interpolated into a raw SQL string via $queryRawUnsafe: SQL injection on a public endpoint.
+    A good review flags it as a serious issue and suggests parameterization ($queryRaw tagged template or
+    findMany with contains/mode insensitive). Adding the rate limit is fine and should not be criticized.
+
+- id: server-action-no-auth
+  description: delete action trusts the client-provided id without checking the session
+  pr_title: "projects: allow deleting from the list view"
+  diff: |
+    diff --git a/app/projects/actions.ts b/app/projects/actions.ts
+    new file mode 100644
+    index 0000000..9e8d7c6
+    --- /dev/null
+    +++ b/app/projects/actions.ts
+    @@ -0,0 +1,12 @@
+    +"use server";
+    +
+    +import { revalidatePath } from "next/cache";
+    +import { db } from "@/lib/db";
+    +
+    +export async function deleteProject(formData: FormData) {
+    +  const id = String(formData.get("id"));
+    +  await db.project.delete({ where: { id } });
+    +  revalidatePath("/projects");
+    +}
+    +
+    +export const MAX_PROJECTS = 20;
+  expect:
+    must_find:
+      - path: app/projects/actions.ts
+        line_range: [6, 9]
+        severity_in: [bug, risk]
+        keywords: [auth, session, owner, permission, anyone]
+    max_findings: 3
+  rubric: |
+    Server actions are public endpoints. This one deletes any project by id with no session or ownership check,
+    so anyone can delete anyone's project. A good review flags missing auth/ownership as the main issue.

@@ -1,0 +1,108 @@
+- id: effect-cleanup-removed
+  description: cleanup of setTimeout dropped during a "readability" refactor
+  pr_title: "refactor: tidy useDebounce"
+  diff: |
+    diff --git a/src/hooks/useDebounce.ts b/src/hooks/useDebounce.ts
+    index 3b18e51..a9c2f04 100644
+    --- a/src/hooks/useDebounce.ts
+    +++ b/src/hooks/useDebounce.ts
+    @@ -1,12 +1,13 @@
+     import { useEffect, useState } from "react";
+     
+     export function useDebounce<T>(value: T, delay = 300): T {
+       const [debounced, setDebounced] = useState(value);
+     
+       useEffect(() => {
+    -    const id = setTimeout(() => setDebounced(value), delay);
+    -    return () => clearTimeout(id);
+    +    const id = setTimeout(() => {
+    +      setDebounced(value);
+    +    }, delay);
+       }, [value, delay]);
+     
+       return debounced;
+     }
+  expect:
+    must_find:
+      - path: src/hooks/useDebounce.ts
+        line_range: [6, 10]
+        severity_in: [bug, risk]
+        keywords: [cleanup, clearTimeout, clear]
+    max_findings: 2
+  rubric: |
+    The only real problem is that the effect no longer clears the timeout, so every value change schedules an update
+    and stale values can land after newer ones (and after unmount). A good review flags that, clearly, once.
+    Penalize comments about formatting or style of the arrow function.
+
+- id: stale-closure-interval
+  description: interval reads count from the first render
+  pr_title: "add auto-refresh counter to dashboard"
+  diff: |
+    diff --git a/src/components/RefreshCounter.tsx b/src/components/RefreshCounter.tsx
+    new file mode 100644
+    index 0000000..1a2b3c4
+    --- /dev/null
+    +++ b/src/components/RefreshCounter.tsx
+    @@ -0,0 +1,19 @@
+    +"use client";
+    +
+    +import { useEffect, useState } from "react";
+    +
+    +export function RefreshCounter({ onTick }: { onTick: (n: number) => void }) {
+    +  const [count, setCount] = useState(0);
+    +
+    +  useEffect(() => {
+    +    const id = setInterval(() => {
+    +      setCount(count + 1);
+    +      onTick(count + 1);
+    +    }, 5000);
+    +    return () => clearInterval(id);
+    +  }, []);
+    +
+    +  return <span className="text-xs text-muted">refreshed {count}x</span>;
+    +}
+    +
+    +export default RefreshCounter;
+  expect:
+    must_find:
+      - path: src/components/RefreshCounter.tsx
+        line_range: [8, 14]
+        severity_in: [bug, risk]
+        keywords: [stale, closure, functional, "count + 1", dependency, "prev"]
+    max_findings: 3
+  rubric: |
+    The interval callback captures count from the first render, so count goes 0 -> 1 and stays at 1, and onTick is
+    always called with 1. Fix is a functional update (setCount(c => c + 1)) and handling onTick separately.
+    A good review explains the stale closure. Mentioning that onTick is missing from deps is fine as part of that.
+
+- id: formatting-only
+  description: prettier run, nothing to say
+  pr_title: "chore: run prettier on components"
+  diff: |
+    diff --git a/src/components/Button.tsx b/src/components/Button.tsx
+    index 5d1e2f3..6a7b8c9 100644
+    --- a/src/components/Button.tsx
+    +++ b/src/components/Button.tsx
+    @@ -1,7 +1,13 @@
+    -import { cn } from '@/lib/cn'
+    +import { cn } from "@/lib/cn";
+     
+    -export function Button({ variant = 'primary', className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'ghost' }) {
+    -  return <button className={cn('btn', variant === 'ghost' && 'btn-ghost', className)} {...props} />
+    +export function Button({
+    +  variant = "primary",
+    +  className,
+    +  ...props
+    +}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" }) {
+    +  return (
+    +    <button className={cn("btn", variant === "ghost" && "btn-ghost", className)} {...props} />
+    +  );
+     }
+     
+    -export default Button
+    +export default Button;
+  expect:
+    max_findings: 0
+  rubric: |
+    Pure formatting change. The ideal output is no comments at all. Any comment is noise; a comment about a real
+    pre-existing issue (for example missing type="button") is acceptable but should score at most 4.

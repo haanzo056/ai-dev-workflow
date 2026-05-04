@@ -1,0 +1,41 @@
+- id: rollback-web
+  question: how do I roll back a bad deploy of the web app?
+  expect:
+    sources_include: [deployment.md]
+    cites: [deployment.md]
+    answer_contains: [Instant Rollback]
+  rubric: |
+    Should say to use Instant Rollback in the Vercel dashboard (promotes the previous deployment, ~1 minute,
+    doesn't touch the database). Bonus if it notes that a bad migration needs a new reverting migration.
+    Must not invent CLI commands for Vercel.
+
+- id: rollback-worker-followup
+  history:
+    - role: user
+      content: how do I roll back a bad deploy of the web app?
+    - role: assistant
+      content: Use Instant Rollback in the Vercel dashboard to promote the previous deployment [1].
+  question: and the worker?
+  expect:
+    sources_include: [deployment.md]
+    answer_contains: [fly deploy]
+  rubric: |
+    Should give the fly releases / fly deploy --image commands for acme-worker from the docs, copied accurately.
+
+- id: friday-deploy
+  question: can I deploy to production on friday evening?
+  expect:
+    cites: [deployment.md]
+    answer_contains: ["15:00"]
+  rubric: |
+    Frozen from Friday 15:00 until Monday 10:00 unless it's a hotfix approved by the on-call lead.
+    A good answer says no (unless hotfix + approval) and gives the window.
+
+- id: migration-rename-column
+  question: whats the process for renaming a db column
+  expect:
+    sources_include: [deployment.md]
+    answer_contains: [two deploys]
+  rubric: |
+    Two deploys: add the new column and write to both, then remove the old one later. Migrations must be
+    backwards compatible because they run before new code is live.

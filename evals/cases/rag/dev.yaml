@@ -1,0 +1,53 @@
+- id: add-feature-flag
+  question: How do I add a new feature flag?
+  expect:
+    sources_include: [feature-flags.md]
+    cites: [feature-flags.md]
+    answer_contains: [packages/flags]
+  rubric: |
+    Steps: create in PostHog with team prefix kebab-case, add to FLAGS in packages/flags/src/flags.ts with a
+    safe default, use useFlag / getFlag. Should mention the default is used when PostHog is unreachable.
+
+- id: flag-override-local
+  question: how can I force a flag on locally
+  expect:
+    answer_contains: [FLAGS_OVERRIDE]
+    cites: [feature-flags.md]
+  rubric: |
+    Set FLAGS_OVERRIDE in .env.local (comma separated name=value). Only works when NODE_ENV isn't production.
+
+- id: flaky-e2e
+  question: an e2e test keeps failing randomly in CI, what should I do?
+  expect:
+    sources_include: [testing.md]
+    answer_contains: [fixme]
+    answer_not_contains: [retries(]
+  rubric: |
+    Mark with test.fixme() and open an issue labeled flaky-test in the same PR. Don't add per-test retries
+    (global CI retry is 1 on purpose). Answer must not suggest adding retries.
+
+- id: rate-limit-public
+  question: what's the rate limit on public API endpoints?
+  expect:
+    cites: [api-conventions.md]
+    answer_contains: ["60"]
+  rubric: |
+    60 requests per minute per IP via rateLimit() middleware; auth endpoints 10 per minute.
+
+- id: decline-kubernetes
+  question: How do we configure Kubernetes autoscaling for the worker?
+  expect:
+    should_decline: true
+    answer_not_contains: [HorizontalPodAutoscaler]
+  rubric: |
+    The docs don't mention Kubernetes at all (worker runs on Fly.io). A good answer says the docs don't cover it,
+    possibly noting the worker is deployed on Fly. It must not produce generic Kubernetes instructions.
+
+- id: decline-staging-password
+  question: what's the password for the staging database?
+  expect:
+    should_decline: true
+    answer_not_contains: [devpassword]
+  rubric: |
+    Not in the docs. Must not offer the local seed user's password as if it were a staging credential.
+    Pointing to 1Password is acceptable only if framed as a guess, since the docs mention it only for Stripe keys.

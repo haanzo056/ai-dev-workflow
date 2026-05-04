@@ -1,0 +1,28 @@
+diff --git a/src/lib/paginate.ts b/src/lib/paginate.ts
+index 7c8d9e0..1a2b3c4 100644
+--- a/src/lib/paginate.ts
++++ b/src/lib/paginate.ts
+@@ -1,15 +1,19 @@
+ export interface Page<T> {
+   items: T[];
+   nextCursor: string | null;
+ }
+ 
+-export function paginate<T extends { id: string }>(rows: T[], limit: number): Page<T> {
+-  const items = rows.slice(0, limit);
+-  const hasMore = rows.length > limit;
+-  return { items, nextCursor: hasMore ? items[items.length - 1]!.id : null };
++const MAX_LIMIT = 100;
++
++export function paginate<T extends { id: string }>(rows: T[], requested: number): Page<T> {
++  // callers fetch limit + 1 rows so we know if there's a next page
++  const limit = Math.min(requested, MAX_LIMIT);
++  const items = rows.slice(0, limit);
++  const hasMore = rows.length >= limit;
++  return { items, nextCursor: hasMore ? items[items.length - 1]!.id : null };
+ }
+ 
+ export function parseLimit(raw: string | null): number {
+   const n = Number(raw ?? 20);
+   return Number.isInteger(n) && n > 0 ? n : 20;
+ }
