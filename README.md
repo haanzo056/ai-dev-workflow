@@ -1,5 +1,7 @@
 # ai-dev-workflow
 
+[![CI](https://github.com/haanzo056/ai-dev-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/haanzo056/ai-dev-workflow/actions/workflows/ci.yml) ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white) ![License](https://img.shields.io/github/license/haanzo056/ai-dev-workflow)
+
 A sandbox where I'm figuring out how to use LLMs in our team's dev process. I'm a frontend/fullstack dev (React, Next.js, TypeScript, Node), not an ML person, so this is mostly about the engineering around the model: getting useful output, measuring it, keeping it cheap and not annoying.
 
 Two experiments so far: an automated PR reviewer and a chat over our project docs. Everything uses Claude through the Anthropic TypeScript SDK. What I learned along the way is in `notes/`, which is probably the most interesting part.
